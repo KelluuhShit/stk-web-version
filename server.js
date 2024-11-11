@@ -102,6 +102,7 @@ const initiateSTKPush = async (mpesaPhone, amount, accessToken) => {
 
     try {
         const response = await axios.post('https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest', data, { headers });
+        console.log('M-Pesa Response:', response.data); // Log the response from M-Pesa
         return response.data;
     } catch (error) {
         console.error('Error in STK Push request:', error.response ? error.response.data : error.message);
@@ -114,7 +115,7 @@ app.post('/api/mpesa/stkpush', async (req, res) => {
     const { mpesaPhone, amount } = req.body;
 
     if (!mpesaPhone || !amount) {
-        return res.status(400).json({ status: 'error', message: 'Phone number and amount are required' });
+        return res.status(400).json({ message: 'Phone number and amount are required' });
     }
 
     try {
@@ -124,19 +125,19 @@ app.post('/api/mpesa/stkpush', async (req, res) => {
         // Make the STK Push request to M-Pesa
         const stkResponse = await initiateSTKPush(mpesaPhone, amount, accessToken);
 
-        // Check the M-Pesa response and send a corresponding message
-        if (stkResponse && stkResponse.ResultCode === 0) {
-            // Success response from M-Pesa
-            res.json({ status: 'success', message: 'Payment initiated successfully' });
+        // Check the response from M-Pesa
+        if (stkResponse && stkResponse.ResponseCode === '0') {  // Assuming '0' means success
+            return res.status(200).json({ status: 'success', message: 'Payment initiated successfully' });
         } else {
-            // Failure response from M-Pesa
-            res.json({ status: 'error', error: stkResponse.ResultDesc || 'Payment initiation failed' });
+            console.error('M-Pesa STK Push error:', stkResponse);  // Log M-Pesa error for debugging
+            return res.status(500).json({ status: 'error', error: stkResponse.ResultDesc || 'Payment initiation failed' });
         }
     } catch (error) {
         console.error("Error initiating STK Push:", error);
-        res.status(500).json({ status: 'error', error: 'Failed to initiate payment' });
+        return res.status(500).json({ status: 'error', error: 'Failed to initiate payment' });
     }
 });
+
 
 
 // Start the server

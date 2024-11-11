@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(response => response.json()) // Parse JSON if the response is OK
         .then(data => {
-            console.log(data); // Log the response to check its structure
+            console.log(data); // Check the response to ensure it matches the expected format
             if (data.status === 'success') {
                 successDiv.classList.remove('hidden');
                 successDiv.textContent = 'Payment initiated successfully. Please complete the payment on your phone.';
@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 loadingDiv.classList.add('hidden');
             }
         })
+        
         
         .catch(error => {
             console.error('Error:', error);
