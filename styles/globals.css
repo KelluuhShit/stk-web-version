@@ -1,0 +1,114 @@
+/* globals.css */
+
+/* Apply a reset for margins, paddings, and borders to create a consistent baseline */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Set up a nice font and spacing for the whole app */
+body {
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.6;
+    background-color: #f4f4f4;
+    color: #333;
+    padding: 20px;
+}
+
+/* Center the content and add spacing */
+.page {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Add some space between headings and content */
+h1 {
+    font-size: 2rem;
+    color: #1a4d2e;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+p {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1rem;
+}
+
+/* Add some space for the form */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+label {
+    font-weight: bold;
+}
+
+/* Style form inputs */
+input[type="text"],
+input[type="number"] {
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+    outline: none;
+    border-color: #1a4d2e;
+}
+
+button[type="submit"] {
+    background-color: #1a4d2e;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button[type="submit"]:hover {
+    background-color: #164b3b;
+}
+
+/* Hide elements by default */
+.hidden {
+    display: none;
+}
+
+/* Style for the loading message */
+#loading {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* Success and error messages styling */
+#success,
+#error {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+#success {
+    color: #4CAF50; /* Green for success */
+}
+
+#error {
+    color: #f44336; /* Red for error */
+}

@@ -1,0 +1,45 @@
+<!-- /public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mpesa Integration</title>
+    <link rel="stylesheet" href="styles/globals.css" />
+    <link rel="stylesheet" href="styles/page.module.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+
+</head>
+<body>
+    <div class="page">
+        <h1>Hello From Mpesa Integration By Kelluuh</h1>
+        <p>Provide your name, Mpesa number, and amount to process purchase.</p>
+
+        <form id="payment-form">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" placeholder="John Doe" required />
+
+            <label for="mpesa-phone">Mpesa Number:</label>
+            <input type="text" id="mpesa-phone" name="mpesa-phone" placeholder="Enter Mpesa phone number" required />
+
+            <label for="amount">Amount:</label>
+            <input type="number" id="amount" name="amount" placeholder="Enter amount" required />
+
+            <button type="submit" id="submit-btn">Proceed with Payment</button>
+        </form>
+
+        <div id="loading" class="hidden">
+            <p>Processing Payment...</p>
+        </div>
+        <div id="success" class="hidden">
+            <p>Your payment was processed successfully. Thank you for your purchase!</p>
+        </div>
+        <div id="error" class="hidden">
+            <p>An error occurred. Please try again.</p>
+        </div>
+    </div>
+
+    <!-- Custom Scripts -->
+    <script src="./scripts/main.js"></script>
+</body>
+</html>

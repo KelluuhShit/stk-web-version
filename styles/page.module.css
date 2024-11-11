@@ -1,0 +1,20 @@
+/* page.module.css */
+
+/* Example override: Style the form more distinctly */
+form {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Style for the Submit button to stand out more */
+button[type="submit"] {
+    background-color: #4CAF50; /* Green for the button */
+    color: white;
+}
+
+button[type="submit"]:hover {
+    background-color: #45a049;
+}
