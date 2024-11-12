@@ -1,51 +1,81 @@
-// /api/mpesa/callback.js
-
 const express = require('express');
+const cors = require('cors');  // Import CORS package
 const app = express();
-const port = 5500;
+const port = 5501;
 
-// Middleware to parse JSON bodies
-app.use(express.json());
+// Use CORS middleware to enable cross-origin requests
+app.use(cors({ origin: 'http://127.0.0.1:5500' }));  // Allow only the frontend at this address
 
-// POST endpoint to handle Mpesa callback
+app.use(express.json());  // Parse JSON bodies
+app.use(express.urlencoded({ extended: true }));  // Parse URL-encoded bodies
+
+// GET endpoint to send a message to the frontend
+app.get('/api/mpesa/message', (req, res) => {
+    res.json({ message: 'This is the payment message from the server' });
+});
+
+// POST endpoint to handle M-Pesa callback
 app.post('/api/mpesa/callback', async (req, res) => {
+    console.log('Request Content-Type:', req.headers['content-type']);
+    console.log('Received Callback:', req.body);
+    console.log('Request Headers:', req.headers);
+
     const data = req.body;
 
-    if (!data.Body.stkCallback.CallbackMetadata) {
-        // For failed transactions
-        console.log(data.Body.stkCallback.ResultDesc);
-        return res.status(200).json({ message: "ok saf" });
+    // Check if the expected keys are present in the body
+    if (!data || !data.Body || !data.Body.stkCallback) {
+        console.error('Callback data is missing required structure');
+        return res.status(400).json({ status: 'error', message: 'Invalid callback data structure' });
     }
 
-    // Extract values from the callback metadata
-    const body = data.Body.stkCallback.CallbackMetadata;
+    // Process the callback data
+    const resultCode = data.Body.stkCallback.ResultCode;
+    const resultDesc = data.Body.stkCallback.ResultDesc;
 
-    // Amount
-    const amountObj = body.Item.find((obj) => obj.Name === "Amount");
-    const amount = amountObj?.Value;
+    console.log('Result Code:', resultCode);
+    console.log('Result Description:', resultDesc);
 
-    // Mpesa receipt number
-    const codeObj = body.Item.find((obj) => obj.Name === "MpesaReceiptNumber");
-    const mpesaCode = codeObj?.Value;
+    // Handle different result codes
+    if (resultCode === 0) {
+        // Successful transaction
+        const body = data.Body.stkCallback.CallbackMetadata;
+        const amountObj = body.Item.find((obj) => obj.Name === "Amount");
+        const amount = amountObj ? amountObj.Value : null;
+        const mpesaCode = body.Item.find((obj) => obj.Name === "MpesaReceiptNumber")?.Value;
+        const phoneNumber = body.Item.find((obj) => obj.Name === "PhoneNumber")?.Value?.toString();
 
-    // Phone number (might be hashed in some cases)
-    const phoneNumberObj = body.Item.find((obj) => obj.Name === "PhoneNumber");
-    const phoneNumber = phoneNumberObj?.Value?.toString();
+        console.log('Transaction Details:', { amount, mpesaCode, phoneNumber });
 
-    try {
-        // Process the transaction (e.g., save it to your database)
-        console.log({ amount, mpesaCode, phoneNumber });
-
-        // Respond with a success message
-        res.status(200).json({ message: 'Transaction processed successfully' });
-    } catch (error) {
-        // Handle any errors
-        console.error('Error processing transaction:', error);
-        res.status(500).json({ message: 'Error processing transaction' });
+        // Here, you would save these details to your database or process as required
+        return res.status(200).json({
+            status: 'success',
+            message: 'Transaction processed successfully',
+            transaction: { amount, mpesaCode, phoneNumber }
+        });
+    } else if (resultCode === 1) {
+        // Payment failed
+        console.error('Payment failed:', resultDesc);
+        return res.status(200).json({
+            status: 'failed',
+            message: resultDesc
+        });
+    } else if (resultCode === 1032) {
+        // Payment was cancelled by the user
+        console.log('Payment was cancelled by the user:', resultDesc);
+        return res.status(200).json({
+            status: 'cancelled',
+            message: 'Payment was cancelled by the user.'
+        });
+    } else {
+        // Unexpected result code
+        console.error('Unexpected result code:', resultCode);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Unexpected error occurred'
+        });
     }
 });
 
-// Start the server
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
 });
