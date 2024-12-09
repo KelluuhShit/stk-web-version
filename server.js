@@ -95,7 +95,7 @@ const initiateSTKPush = async (mpesaPhone, amount, accessToken) => {
         "PartyA": formattedPhone,
         "PartyB": shortcode,
         "PhoneNumber": formattedPhone,
-        "CallBackURL": "https://c782-197-248-118-123.ngrok-free.app/api/mpesa/callback",
+        "CallBackURL": "https://7c84-154-159-238-133.ngrok-free.app/callback",
         "AccountReference": "Apex Ventures",
         "TransactionDesc": "Testing STK Push",
     };
