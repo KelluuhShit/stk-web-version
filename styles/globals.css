@@ -99,7 +99,8 @@ button[type="submit"]:hover {
 
 /* Success and error messages styling */
 #success,
-#error {
+#error,
+#cancellation {
     text-align: center;
     font-size: 1.2rem;
     font-weight: bold;

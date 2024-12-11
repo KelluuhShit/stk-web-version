@@ -1,3 +1,4 @@
+// server.js
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -43,31 +44,60 @@ const getAccessToken = async () => {
     }
 };
 
-// POST endpoint to handle Mpesa callback
+// Callback endpoint
 app.post('/api/mpesa/callback', async (req, res) => {
     const data = req.body;
 
-    // Process the callback data
-    if (!data.Body.stkCallback.CallbackMetadata) {
-        // Handle failed transactions
-        console.log(data.Body.stkCallback.ResultDesc);
-        return res.status(200).json({ message: "ok saf" });
+    if (!data || !data.Body || !data.Body.stkCallback) {
+        return res.status(400).json({ status: 'error', message: 'Invalid callback data structure' });
     }
 
-    // Extract values from the callback metadata and process them
-    const body = data.Body.stkCallback.CallbackMetadata;
+    const callbackData = data.Body.stkCallback;
+    const resultCode = callbackData.ResultCode;
+    const resultDesc = callbackData.ResultDesc;
+
+    // Handle missing or incomplete transactions
+    if (!callbackData.CallbackMetadata) {
+        console.warn('Transaction failed or cancelled:', resultDesc);
+
+        if (resultCode === 1032) { // Assuming 1032 is the cancellation code
+            return res.status(200).json({
+                status: 'cancelled',
+                message: 'Payment was cancelled by the user.',
+                transaction: { resultDesc }
+            });
+        }
+
+        return res.status(200).json({
+            status: 'error',
+            message: resultDesc || 'Transaction failed.',
+            transaction: { resultDesc }
+        });
+    }
+
+    // Extract values from the callback metadata
+    const body = callbackData.CallbackMetadata;
     const amountObj = body.Item.find((obj) => obj.Name === "Amount");
     const amount = amountObj?.Value;
     const mpesaCode = body.Item.find((obj) => obj.Name === "MpesaReceiptNumber")?.Value;
     const phoneNumber = body.Item.find((obj) => obj.Name === "PhoneNumber")?.Value?.toString();
 
     try {
-        // Process the transaction (e.g., save to your database)
         console.log({ amount, mpesaCode, phoneNumber });
-        res.status(200).json({ message: 'Transaction processed successfully' });
+
+        // Return success response
+        return res.status(200).json({
+            status: 'success',
+            message: 'Transaction processed successfully',
+            transaction: { amount, mpesaCode, phoneNumber, resultDesc }
+        });
     } catch (error) {
         console.error('Error processing transaction:', error);
-        res.status(500).json({ message: 'Error processing transaction' });
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Error processing transaction'
+        });
     }
 });
 
@@ -95,7 +125,7 @@ const initiateSTKPush = async (mpesaPhone, amount, accessToken) => {
         "PartyA": formattedPhone,
         "PartyB": shortcode,
         "PhoneNumber": formattedPhone,
-        "CallBackURL": "https://7c84-154-159-238-133.ngrok-free.app/callback",
+        "CallBackURL": "https://255e-196-96-126-115.ngrok-free.app/callback",
         "AccountReference": "Apex Ventures",
         "TransactionDesc": "Testing STK Push",
     };
@@ -138,7 +168,96 @@ app.post('/api/mpesa/stkpush', async (req, res) => {
     }
 });
 
+// Callback endpoint for status polling
+app.post('/api/mpesa/callback', async (req, res) => {
+    console.log('Received Callback:', req.body);
 
+    const data = req.body;
+
+    // Validate callback structure
+    if (!data || !data.Body || !data.Body.stkCallback) {
+        console.error('Callback data is missing required structure');
+        return res.status(400).json({ status: 'error', message: 'Invalid callback data structure' });
+    }
+
+    const checkoutRequestID = data.Body.stkCallback.CheckoutRequestID;
+    console.log('CheckoutRequestID:', checkoutRequestID);
+
+    let attempts = 0;
+    const maxAttempts = 30; // Maximum polling attempts
+    const pollIntervalMs = 1000; // Polling interval in milliseconds
+
+    // Function to handle the transaction result
+    const handleTransactionResult = (resultCode, resultDesc) => {
+        clearInterval(pollInterval); // Stop polling
+
+        // Respond based on the result code
+        switch (resultCode) {
+            case 0:
+                console.log('Transaction successful:', resultDesc);
+                res.status(200).json({
+                    status: 'success',
+                    message: 'Transaction processed successfully',
+                    transaction: { resultDesc }
+                });
+                break;
+            case 1032:
+                console.log('Payment cancelled by the user:', resultDesc);
+                res.status(200).json({
+                    status: 'cancelled',
+                    message: 'Payment was cancelled by the user.',
+                    transaction: { resultDesc }
+                });
+                break;
+            default:
+                console.error('Payment failed or unknown error:', resultDesc);
+                res.status(500).json({
+                    status: 'error',
+                    message: resultDesc || 'Unexpected error occurred'
+                });
+                break;
+        }
+    };
+
+    // Function to poll the transaction status
+    const pollStatus = async () => {
+        attempts += 1;
+
+        if (attempts > maxAttempts) {
+            console.error('Max attempts reached. Stopping polling.');
+            clearInterval(pollInterval);
+            return res.status(408).json({
+                status: 'error',
+                message: 'Transaction status polling timed out'
+            });
+        }
+
+        try {
+            const response = await axios.get(
+                `https://255e-196-96-126-115.ngrok-free.app/status/${checkoutRequestID}`
+            );
+            const { resultCode, resultDesc } = response.data;
+
+            console.log(`Polling attempt ${attempts}: Result Code: ${resultCode}, Result Desc: ${resultDesc}`);
+
+            // Check if the transaction is finalized
+            if (resultCode !== undefined) {
+                handleTransactionResult(resultCode, resultDesc);
+            }
+        } catch (error) {
+            console.error('Error polling status:', error.message);
+
+            // Handle 404 separately for clarity
+            if (error.response && error.response.status === 404) {
+                console.warn('Status endpoint returned 404 - transaction might not be available yet.');
+            } else {
+                console.error('Unexpected error during polling:', error.message);
+            }
+        }
+    };
+
+    const pollInterval = setInterval(pollStatus, pollIntervalMs); // Poll every second
+});
 
 // Start the server
 app.listen(port, () => {
